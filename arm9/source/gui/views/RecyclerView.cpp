@@ -262,10 +262,53 @@ SharedPtr<View> RecyclerView::MoveFocusVertical(const SharedPtr<View>& currentFo
             SetSelectedItem(std::clamp(idx, 0, ((int)_itemCount - 1) / _columns * _columns));
             return _selectedItem != nullptr ? _selectedItem->view : SharedFromThis();
         }
+        else if (direction == FocusMoveDirection::Left)
+        {
+            // Mirrors Right above (entering from the opposite side): same row,
+            // but the last column of it instead of the first.
+            int idx = (-_yOffset + currentFocus->GetPosition().y - _yPadding + ((_ySpacing + _itemHeight) >> 1)) / (_ySpacing + _itemHeight) * _columns + (_columns - 1);
+            SetSelectedItem(std::clamp(idx, 0, (int)_itemCount - 1));
+            return _selectedItem != nullptr ? _selectedItem->view : SharedFromThis();
+        }
         else if (direction == FocusMoveDirection::Down)
         {
+            // Same reasoning as the Up case below: prefer resuming
+            // wherever the user already was over computing a fresh
+            // position, if there's already a valid selection to resume.
+            if (_selectedItem)
+            {
+                return _selectedItem->view;
+            }
+
             int idx = (-_xOffset + currentFocus->GetPosition().x - _xPadding + ((_xSpacing + _itemWidth) >> 1)) / (_xSpacing + _itemWidth);
             SetSelectedItem(std::clamp(idx, 0, _columns - 1));
+            return _selectedItem != nullptr ? _selectedItem->view : SharedFromThis();
+        }
+        else if (direction == FocusMoveDirection::Up)
+        {
+            // Prefer resuming exactly where the user already was (e.g.
+            // before leaving the list to use the bottom app bar's icons)
+            // over computing a fresh position - if there's already a valid
+            // selection, leave it untouched rather than overwriting it.
+            // This used to always jump to the last item instead, which is
+            // where "selection forgotten, then the list jumps/scrolls to
+            // the very end" was coming from: from the row's perspective, an
+            // app bar button regaining focus and sending it back in looks
+            // identical to entering fresh, so it needs its own check here
+            // rather than being indistinguishable from the "nothing
+            // selected yet" case below.
+            if (_selectedItem)
+            {
+                return _selectedItem->view;
+            }
+
+            // Mirrors Down above (entering from the opposite side, only
+            // reached when nothing has ever been selected yet): same
+            // column, last row instead of first.
+            int column = std::clamp((-_xOffset + currentFocus->GetPosition().x - _xPadding +
+                ((_xSpacing + _itemWidth) >> 1)) / (_xSpacing + _itemWidth), 0, _columns - 1);
+            int idx = ((int)_itemCount - 1) / _columns * _columns + column;
+            SetSelectedItem(std::clamp(idx, 0, (int)_itemCount - 1));
             return _selectedItem != nullptr ? _selectedItem->view : SharedFromThis();
         }
 

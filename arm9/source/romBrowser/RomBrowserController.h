@@ -5,6 +5,7 @@
 #include "viewModels/RomBrowserViewModel.h"
 #include "RomBrowserStateMachine.h"
 #include "core/task/TaskQueue.h"
+#include "backlightIpc.h"
 #include "IRomBrowserController.h"
 #include "CoverRepository.h"
 #include "IconRepository.h"
@@ -80,7 +81,13 @@ public:
 
     int GetBacklightLevel() const override
     {
-        return _appSettingsService->GetAppSettings().backlightLevel;
+        // -1 means the user has never picked a level through this app. Rather
+        // than showing no option as active, fall back to whatever the ARM7
+        // reported the hardware was already at. That itself stays -1 on a
+        // console that can't report one, which keeps the original behaviour
+        // where it genuinely isn't knowable.
+        int level = _appSettingsService->GetAppSettings().backlightLevel;
+        return level >= 0 ? level : backlight_getReportedLevel();
     }
 
     void SetBacklightLevel(int level) override;

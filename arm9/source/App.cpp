@@ -149,10 +149,12 @@ void App::Run()
 
     StoreVramState(_vramStateBeforeMakeBottomScreenView);
 
+    auto initialDisplayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
+        _romBrowserController.GetRomBrowserDisplaySettings().layout);
+    _dialogPresenter.SetBottomInset(initialDisplayMode->GetReservedBottomSpace());
     _romBrowserBottomScreenView = RomBrowserBottomScreenView::CreateShared(
         &_romBrowserBottomScreenViewModel,
-        RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
-            _romBrowserController.GetRomBrowserDisplaySettings().layout),
+        initialDisplayMode,
         _theme->GetThemeFileIconFactory(),
         _theme->GetRomBrowserViewFactory(),
         &_vblankTextureLoader);
@@ -506,10 +508,21 @@ void App::HandleFolderLoadDoneTrigger()
 
 void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
 {
+    // This rebuilds the whole bottom screen view, app bar included, so any
+    // memory of which button had focus dies with the old instance. Toggling a
+    // filter comes through here (see RomBrowserController::ToggleFavoritesFilter
+    // firing ChangeDisplayMode), and the button that was just pressed is still
+    // the focused one at this point - so note it now and hand it to the
+    // replacement, instead of letting focus restart from the back button and
+    // forcing the user to navigate back to the filter to toggle it off again.
+    int focusedAppBarButton = _romBrowserBottomScreenView
+        ? _romBrowserBottomScreenView->GetFocusedAppBarButton() : -1;
+
     _dialogPresenter.ClearOldFocus();
     RestoreVramState(_vramStateBeforeMakeBottomScreenView);
     auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
         _romBrowserController.GetRomBrowserDisplaySettings().layout);
+    _dialogPresenter.SetBottomInset(displayMode->GetReservedBottomSpace());
     _romBrowserBottomScreenView = RomBrowserBottomScreenView::CreateShared(
         &_romBrowserBottomScreenViewModel,
         displayMode,
@@ -528,7 +541,12 @@ void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
     _romBrowserTopScreenView->InitVram(_subVramContext);
     _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
     if (newState == RomBrowserState::Browser)
-        _romBrowserBottomScreenView->Focus(_focusManager);
+    {
+        if (focusedAppBarButton >= 0)
+            _romBrowserBottomScreenView->FocusAppBarButton(_focusManager, focusedAppBarButton);
+        else
+            _romBrowserBottomScreenView->Focus(_focusManager);
+    }
 }
 
 void App::Update()
