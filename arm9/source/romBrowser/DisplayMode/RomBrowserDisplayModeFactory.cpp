@@ -3,6 +3,7 @@
 #include "RomBrowserVerticalIconGridDisplayMode.h"
 #include "RomBrowserBannerListDisplayMode.h"
 #include "RomBrowserHorizontalCoverFlowDisplayMode.h"
+#include "RomBrowserWideBannerListDisplayMode.h"
 #include "RomBrowserDisplayModeFactory.h"
 
 const RomBrowserDisplayMode* RomBrowserDisplayModeFactory::GetRomBrowserDisplayMode(
@@ -25,6 +26,10 @@ const RomBrowserDisplayMode* RomBrowserDisplayModeFactory::GetRomBrowserDisplayM
         case RomBrowserLayout::CoverFlow:
         {
             return &RomBrowserHorizontalCoverFlowDisplayMode::sInstance;
+        }
+        case RomBrowserLayout::WideBannerList:
+        {
+            return &RomBrowserWideBannerListDisplayMode::sInstance;
         }
         default:
         {

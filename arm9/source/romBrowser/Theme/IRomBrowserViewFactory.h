@@ -38,6 +38,23 @@ public:
     virtual BannerListItemView::VramToken UploadBannerListItemViewGraphics(
         const VramContext& vramContext) const { return BannerListItemView::VramToken(0); }
 
+    /// @brief The wider item cell used by the horizontal list layout (see
+    ///        RomBrowserWideBannerListDisplayMode). Draws with the same
+    ///        uploaded graphics as CreateBannerListItemView/
+    ///        UploadBannerListItemViewGraphics above - there is no separate
+    ///        upload method for it.
+    virtual SharedPtr<BannerListItemView> CreateWideBannerListItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel,
+        VBlankTextureLoader* vblankTextureLoader) const = 0;
+
+    /// @brief Width of a wide banner list item, and the vertical gap between
+    ///        items. Theme-specific because the cell art differs between the
+    ///        engines: the Material one is built from fixed 64px background
+    ///        segments, so its width can only move in whole segments, and it
+    ///        stands 48px tall against a 40px row, which needs more of a gap
+    ///        than the custom engine's cell does.
+    virtual int GetWideBannerListItemWidth() const { return 250; }
+    virtual int GetWideBannerListItemSpacing() const { return 3; }
+
     virtual SharedPtr<AppBarView> CreateAppBarView(int x, int y, AppBarView::Orientation orientation,
         int startButtonCount, int endButtonCount) const = 0;
 

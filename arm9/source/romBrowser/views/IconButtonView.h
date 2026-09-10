@@ -63,6 +63,15 @@ public:
 
     constexpr bool IsEnabled() const { return _enabled; }
 
+    /// @brief Tells this button what colour is painted behind it, so its
+    ///        baked-in antialiasing blends against the right thing. No-op for
+    ///        button implementations that don't use a palette ramp for that.
+    virtual void SetBackdropColor(const Rgb<8, 8, 8>& backdropColor) { }
+
+    /// @brief Asks for a shorter highlight shape that fits inside a constrained
+    ///        row. No-op for button implementations with only one shape.
+    virtual void SetUsePillSelector(bool usePillSelector) { }
+
     /// @brief Overrides the icon tint, e.g. to signal an active filter.
     void SetIconColorOverride(const Rgb<8, 8, 8>& color)
     {
@@ -129,16 +138,18 @@ protected:
     ///        display settings sheet the other, depending on the theme) so focus
     ///        cannot end up looking different in the two places.
     ///
-    ///        secondaryContainer normally - the same tone the display settings
-    ///        sheet uses for a selected option, so focus reads the same way in
-    ///        both places. The exception is a button that is ALREADY selected:
-    ///        it draws secondaryContainer at rest (see GetCircleBackgroundColor),
-    ///        so focusing it has to move to another tone or the two facts become
-    ///        one pixel-identical circle - which left the hide-empty-folders
-    ///        toggle with no readable state at all, since pressing it changed
-    ///        nothing on screen while it had focus.
-    ///        App bar buttons are never selected, so there they are always the
-    ///        first tone.
+    ///        secondaryContainer normally, primary for a button that is already
+    ///        selected - which is what that button already draws at rest (see
+    ///        GetCircleBackgroundColor), so the fill alone no longer tells
+    ///        focus apart from selection. It doesn't have to: the focused
+    ///        selector is drawn with an outline ring the resting one lacks (see
+    ///        IconButtonSelectorPalette), and that is what marks focus now.
+    ///        Leaving the fill matching the resting state is deliberate -
+    ///        making it differ as well would mean selection and focus fighting
+    ///        over the same colour, which is what left selected and unselected
+    ///        values indistinguishable in light themes.
+    ///        App bar buttons are never selected, so there they are always
+    ///        secondaryContainer.
     md::sys::color GetFocusFillColor() const
     {
         return _state == State::ToggleSelected ? md::sys::color::primary

@@ -36,6 +36,17 @@ public:
         }
     }
 
+    /// @brief Index of the app bar button holding focus, or -1 if focus is in
+    ///        the content or nowhere.
+    int GetFocusedAppBarButton() const { return _romBrowserAppBarView->GetFocusedButtonIndex(); }
+
+    /// @brief Puts focus straight onto an app bar button, skipping the content.
+    ///        Used to carry focus across a rebuild of this whole view.
+    void FocusAppBarButton(FocusManager& focusManager, int button)
+    {
+        _romBrowserAppBarView->Focus(focusManager, button);
+    }
+
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
     void HandlePenDown(const Point& touchPoint, FocusManager& focusManager) override;
     void HandlePenMove(const Point& touchPoint, FocusManager& focusManager) override;
@@ -57,7 +68,6 @@ private:
     SharedPtr<RomBrowserAppBarView> _romBrowserAppBarView;
     SharedPtr<RomBrowserView> _romBrowserView;
     VBlankTextureLoader* _vblankTextureLoader;
-
     RomBrowserBottomScreenView(
         RomBrowserBottomScreenViewModel* viewModel,
         const RomBrowserDisplayMode* displayMode,

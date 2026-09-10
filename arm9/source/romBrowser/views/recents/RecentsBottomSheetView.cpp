@@ -24,7 +24,8 @@
 RecentsBottomSheetView::RecentsBottomSheetView(SharedPtr<RecentsViewModel> viewModel,
     const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
     FocusManager* focusManager)
-    : _viewModel(std::move(viewModel))
+    : BottomSheetView(materialColorScheme)
+    , _viewModel(std::move(viewModel))
     , _titleLabel(Label2DView::CreateShared(128, 16, 25, fontRepository->GetFont(FontType::Medium11)))
     , _emptyLabel(Label2DView::CreateShared(192, 16, 32, fontRepository->GetFont(FontType::Regular10)))
     , _recentsRecycler(RecyclerView::CreateShared(
@@ -121,6 +122,13 @@ void RecentsBottomSheetView::Draw(GraphicsContext& graphicsContext)
             _emptyLabel->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
             _emptyLabel->Draw(graphicsContext);
         }
+
+        // OamManager hands out OAM slots from a descending stack, so
+        // drawing this last (not first) is what actually gives it the
+        // lowest indices here and keeps it in front of the recycler/mask-
+        // strip content above, even though their bounds happen to overlap
+        // its corner - see DisplaySettingsBottomSheetView::Draw for the
+        // fuller explanation.
     }
     graphicsContext.SetPriority(oldPrio);
     graphicsContext.ResetClipArea();

@@ -12,7 +12,8 @@
 NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     IRomBrowserController* romBrowserController, const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository)
-    : _romBrowserController(romBrowserController)
+    : BottomSheetView(materialColorScheme)
+    , _romBrowserController(romBrowserController)
     , _cheatsChip(ChipView::CreateShared(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository))
     , _favoriteChip(ChipView::CreateShared(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository))
 {
@@ -54,6 +55,10 @@ void NdsGameDetailsBottomSheetView::Draw(GraphicsContext& graphicsContext)
     u32 oldPrio = graphicsContext.SetPriority(1);
     {
         BottomSheetView::Draw(graphicsContext);
+        // OamManager hands out OAM slots from a descending stack, so
+        // drawing this last (not first) is what gives it the lowest
+        // indices here and keeps it in front - see the fuller explanation
+        // in DisplaySettingsBottomSheetView::Draw.
     }
     graphicsContext.SetPriority(oldPrio);
     graphicsContext.ResetClipArea();

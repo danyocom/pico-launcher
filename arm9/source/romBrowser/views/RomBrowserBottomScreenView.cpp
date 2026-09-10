@@ -1,7 +1,12 @@
 #include "common.h"
+#include <libtwl/dma/dmaNitro.h>
 #include "../viewModels/RomBrowserViewModel.h"
 #include "../views/IconGridItemView.h"
 #include "gui/GraphicsContext.h"
+#include "gui/VramContext.h"
+#include "gui/OamBuilder.h"
+#include "gui/palette/GradientPalette.h"
+#include "core/math/Rgb.h"
 #include "backIcon.h"
 #include "settingsIcon.h"
 #include "heartIcon.h"
@@ -44,10 +49,67 @@ void RomBrowserBottomScreenView::Update()
 
 void RomBrowserBottomScreenView::Draw(GraphicsContext& graphicsContext)
 {
-    _romBrowserAppBarView->Draw(graphicsContext);
-    if (_romBrowserView && _viewModel->IsRomBrowserVisible())
+    if (_romBrowserDisplayMode->GetReservedBottomSpace() > 0)
     {
-        _romBrowserView->Draw(graphicsContext);
+        // Content first, icon row second - the opposite of the other
+        // layouts below, and the whole point of this branch.
+        //
+        // The custom theme's app bar already draws a genuinely
+        // semi-transparent scrim across the reserved strip: a 3D quad with
+        // an A5I3 (per-texel alpha) gradient texture, see
+        // CustomAppBarView::Draw. That's real translucency via the 3D
+        // engine's own alpha, which is completely independent of the
+        // main engine's BLDCNT/BLDALPHA - the shared registers
+        // DialogPresenter drives every frame, and the reason an OBJ
+        // translucent sprite can't do this job.
+        //
+        // Translucent 3D polygons blend in submission order (SwapBuffers
+        // uses GX_XLU_SORT_MANUAL - see App.cpp), so whatever is submitted
+        // later paints over what came before. Drawing the app bar first
+        // meant list rows overhanging into the reserved strip were
+        // submitted afterwards and landed on top of that scrim instead of
+        // being muted by it. Submitting the list first lets the scrim
+        // blend over the overhang the way it was always meant to, and -
+        // because the buttons are drawn after their own scrim inside
+        // AppBarView::Draw - leaves every button's focus circle
+        // (IconButton3DView::DrawSelector) fully visible on top.
+        if (_romBrowserView && _viewModel->IsRomBrowserVisible())
+        {
+            // Deliberately NOT setting a clip area of our own here. App::Draw
+            // calls DialogPresenter::ApplyClipArea before this, which installs
+            // an INVERSE clip over the area an open dialog fully covers, so
+            // every row hidden behind that dialog is culled instead of
+            // allocating OAM entries nothing will ever see. Overwriting it
+            // with a normal clip (as this did while the icons still clipped
+            // themselves) silently disabled that culling, which is enough to
+            // exhaust the 128-entry OAM table on sprite-heavy themes like
+            // Material - OamManager::AllocOams doesn't bounds check, so the
+            // overflow just shows up as dialog content failing to render.
+            _romBrowserView->Draw(graphicsContext);
+        }
+
+        // A dialog's background (BG1, always priority 1 - see
+        // DialogPresenter::InitVram) always extends down past the bottom of
+        // the screen once open, regardless of GetReservedBottomSpace(); it
+        // isn't shrunk to make room, only scrolled (DialogPresenter::Update).
+        // A layout that reserves bottom space wants its app bar to stay
+        // visible and usable through that anyway, so draw it at a priority
+        // that wins the tie against BG1 instead - sprites beat a same-
+        // priority BG layer on this hardware.
+        u32 oldPriority = graphicsContext.SetPriority(1);
+        // The icon row's own background strip and groove line are drawn by the
+        // app bar itself (AppBarView::Draw), so they follow whatever colours
+        // the active theme supplies rather than being fixed here.
+        _romBrowserAppBarView->Draw(graphicsContext);
+        graphicsContext.SetPriority(oldPriority);
+    }
+    else
+    {
+        _romBrowserAppBarView->Draw(graphicsContext);
+        if (_romBrowserView && _viewModel->IsRomBrowserVisible())
+        {
+            _romBrowserView->Draw(graphicsContext);
+        }
     }
 }
 
@@ -77,7 +139,23 @@ SharedPtr<View> RomBrowserBottomScreenView::MoveFocus(const SharedPtr<View>& cur
         }
         else
         {
-            if (direction == FocusMoveDirection::Down)
+            // a horizontal bar at the bottom (the horizontal list layout) is
+            // reached from the content by pressing Down, not Up
+            FocusMoveDirection towardContent = _romBrowserDisplayMode->IsAppBarAtEnd()
+                ? FocusMoveDirection::Up : FocusMoveDirection::Down;
+            // Reserved-space layouts (currently just the horizontal list)
+            // treat Up and Down as interchangeable ways back to the list -
+            // the icon row is a single horizontal strip with no meaningful
+            // "up vs down" of its own, and Left/Right own all in-bar
+            // navigation there instead (see the matching change below), so
+            // leaving it vertically in either direction should return to
+            // content. Other horizontal-app-bar layouts (icon grid, cover
+            // flow) keep the original single-direction behavior.
+            bool reservedSpaceLayout = _romBrowserDisplayMode->GetReservedBottomSpace() > 0;
+            bool verticalExit = reservedSpaceLayout
+                ? (direction == FocusMoveDirection::Up || direction == FocusMoveDirection::Down)
+                : (direction == towardContent);
+            if (verticalExit)
             {
                 return _romBrowserView->MoveFocus(currentFocus, direction, this);
             }
@@ -95,7 +173,20 @@ SharedPtr<View> RomBrowserBottomScreenView::MoveFocus(const SharedPtr<View>& cur
         }
         else
         {
-            if (direction == FocusMoveDirection::Up)
+            FocusMoveDirection towardAppBar = _romBrowserDisplayMode->IsAppBarAtEnd()
+                ? FocusMoveDirection::Down : FocusMoveDirection::Up;
+            bool reservedSpaceLayout = _romBrowserDisplayMode->GetReservedBottomSpace() > 0;
+            // Reserved-space layouts route Left/Right to the icon row
+            // exclusively, not the natural scroll-to-the-end towardAppBar
+            // direction - Up/Down always stays within the list and never
+            // leaves it (matches the change above: it's the only way back
+            // in, so it needs to also be the only way out). Other
+            // horizontal-app-bar layouts keep the original single-direction
+            // behavior, scoped the same way appBarSideEntry used to be.
+            bool appBarEntry = reservedSpaceLayout
+                ? (direction == FocusMoveDirection::Left || direction == FocusMoveDirection::Right)
+                : (direction == towardAppBar);
+            if (appBarEntry)
             {
                 return _romBrowserAppBarView->MoveFocus(currentFocus, direction, this);
             }

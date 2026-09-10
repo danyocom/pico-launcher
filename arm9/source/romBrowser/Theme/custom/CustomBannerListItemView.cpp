@@ -35,24 +35,34 @@ CustomBannerListItemView::CustomBannerListItemView(std::unique_ptr<IRomBrowserIt
     const CustomThemeInfo* customThemeInfo, const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository, u32 texVramOffset, u32 plttVramOffset,
     u32 selectedTexVramOffset, u32 selectedPlttVramOffset,
-    VBlankTextureLoader* vblankTextureLoader)
+    VBlankTextureLoader* vblankTextureLoader, bool wide)
     : BannerListItemView(std::move(viewModel),
-        Label3DView::CreateShared(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
+        Label3DView::CreateShared(wide ? 197+45 : LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
             fontRepository->GetFont(FontType::Medium10), vblankTextureLoader),
-        Label3DView::CreateShared(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
+        Label3DView::CreateShared(wide ? 197+45 : LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
             fontRepository->GetFont(FontType::Regular10), vblankTextureLoader),
-        Label3DView::CreateShared(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
+        Label3DView::CreateShared(wide ? 197+45 : LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
             fontRepository->GetFont(FontType::Regular10), vblankTextureLoader))
     , _customThemeInfo(customThemeInfo)
     , _materialColorScheme(materialColorScheme)
     , _texVramOffset(texVramOffset)
     , _plttVramOffset(plttVramOffset)
     , _selectedTexVramOffset(selectedTexVramOffset)
-    , _selectedPlttVramOffset(selectedPlttVramOffset) { }
+    , _selectedPlttVramOffset(selectedPlttVramOffset)
+    , _wide(wide)
+    , _width(wide ? 248+2 : 203) { }
 
 void CustomBannerListItemView::Draw(GraphicsContext& graphicsContext)
 {
-    if (!graphicsContext.IsVisible(Rectangle(_position.x + X_OFFSET, _position.y + Y_OFFSET, WIDTH, HEIGHT)))
+    // The horizontal list layout's item (_wide) is stretched to _width
+    // instead of the standard item's fixed WIDTH - the custom theme's
+    // texture atlas is only guaranteed to have real content in the WIDTHx
+    // HEIGHT region actually used below (TexCoord never samples past WIDTH/
+    // HEIGHT), so this stretches that known-good region across the wider
+    // quad rather than sampling unknown territory further into the atlas.
+    int quadWidth = _wide ? (int)_width : WIDTH;
+
+    if (!graphicsContext.IsVisible(Rectangle(_position.x + X_OFFSET, _position.y + Y_OFFSET, quadWidth, HEIGHT)))
     {
         return;
     }
@@ -75,10 +85,10 @@ void CustomBannerListItemView::Draw(GraphicsContext& graphicsContext)
     REG_GX_VTX_16 = GX_VTX_PACK((_position.x + X_OFFSET) << 6, (_position.y + Y_OFFSET + HEIGHT) << 3);
     REG_GX_VTX_16 = (Z_OFFSET) << 6;
     Gx::TexCoord(WIDTH, HEIGHT);
-    REG_GX_VTX_16 = GX_VTX_PACK((_position.x + X_OFFSET + WIDTH) << 6, (_position.y + Y_OFFSET + HEIGHT) << 3);
+    REG_GX_VTX_16 = GX_VTX_PACK((_position.x + X_OFFSET + quadWidth) << 6, (_position.y + Y_OFFSET + HEIGHT) << 3);
     REG_GX_VTX_16 = (Z_OFFSET) << 6;
     Gx::TexCoord(WIDTH, 0);
-    REG_GX_VTX_16 = GX_VTX_PACK((_position.x + X_OFFSET + WIDTH) << 6, (_position.y + Y_OFFSET) << 3);
+    REG_GX_VTX_16 = GX_VTX_PACK((_position.x + X_OFFSET + quadWidth) << 6, (_position.y + Y_OFFSET) << 3);
     REG_GX_VTX_16 = (Z_OFFSET) << 6;
     Gx::End();
 

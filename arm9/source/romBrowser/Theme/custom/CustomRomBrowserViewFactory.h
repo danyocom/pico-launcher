@@ -32,7 +32,7 @@ public:
     {
         return CustomBannerListItemView::CreateShared(std::move(viewModel), _customThemeInfo, _materialColorScheme, _fontRepository,
             _bannerListCellTexVramOffset, _bannerListCellPlttVramOffset,
-            _bannerListCellSelectedTexVramOffset, _bannerListCellSelectedPlttVramOffset, vblankTextureLoader);
+            _bannerListCellSelectedTexVramOffset, _bannerListCellSelectedPlttVramOffset, vblankTextureLoader, false);
     }
 
     BannerListItemView::VramToken UploadBannerListItemViewGraphics(const VramContext& vramContext) const override
@@ -40,10 +40,22 @@ public:
         return BannerListItemView::VramToken(0);
     }
 
+    SharedPtr<BannerListItemView> CreateWideBannerListItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel,
+        VBlankTextureLoader* vblankTextureLoader) const override
+    {
+        // Reuses the same texture as CreateBannerListItemView above -
+        // CustomBannerListItemView stretches it to the wider size itself
+        // (see its Draw()), rather than needing separate wide-sized art.
+        return CustomBannerListItemView::CreateShared(std::move(viewModel), _customThemeInfo, _materialColorScheme, _fontRepository,
+            _bannerListCellTexVramOffset, _bannerListCellPlttVramOffset,
+            _bannerListCellSelectedTexVramOffset, _bannerListCellSelectedPlttVramOffset, vblankTextureLoader, true);
+    }
+
     SharedPtr<AppBarView> CreateAppBarView(int x, int y, AppBarView::Orientation orientation,
         int startButtonCount, int endButtonCount) const override
     {
-        return CustomAppBarView::CreateShared(x, y, orientation, startButtonCount, endButtonCount, _materialColorScheme,
+        return CustomAppBarView::CreateShared(x, y, orientation, startButtonCount, endButtonCount,
+            _customThemeInfo, _materialColorScheme,
             _scrimTexVramOffset, _scrimPlttVramOffset);
     }
 

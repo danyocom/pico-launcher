@@ -34,7 +34,9 @@
 #define PROMPTS_LABEL_X             184
 #define PROMPTS_LABEL_Y             DESCRIPTION_LABEL_Y
 
-#define UP_BUTTON_X                 212
+// Shifted 32px left of its original x (212) to leave room for the sheet's
+// close button in the top-right corner (BottomSheetView::Update).
+#define UP_BUTTON_X                 180
 #define UP_BUTTON_Y                 (TITLE_LABEL_Y - 7)
 
 #define LIST_X                      16
@@ -45,7 +47,8 @@
 CheatsBottomSheetView::CheatsBottomSheetView(SharedPtr<CheatsViewModel> viewModel,
     const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
     FocusManager* focusManager)
-    : _viewModel(std::move(viewModel))
+    : BottomSheetView(materialColorScheme)
+    , _viewModel(std::move(viewModel))
     , _titleLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Medium11)))
     , _secondaryLabel(Label2DView::CreateShared(153, 16, 64, fontRepository->GetFont(FontType::Regular10)))
     , _descriptionLabel(Label2DView::CreateShared(164, 16, 256, fontRepository->GetFont(FontType::Medium7_5)))
@@ -243,6 +246,13 @@ void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         {
             _upButton->Draw(graphicsContext);
         }
+
+        // OamManager hands out OAM slots from a descending stack, so
+        // drawing this last (not first) is what actually gives it the
+        // lowest indices here and keeps it in front of the list/mask-strip
+        // content above, even though their bounds happen to overlap its
+        // corner slightly - see DisplaySettingsBottomSheetView::Draw for
+        // the fuller explanation.
     }
     graphicsContext.SetPriority(oldPrio);
     graphicsContext.ResetClipArea();

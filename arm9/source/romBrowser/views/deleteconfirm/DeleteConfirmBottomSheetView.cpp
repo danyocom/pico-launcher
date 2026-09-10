@@ -20,7 +20,8 @@
 
 DeleteConfirmBottomSheetView::DeleteConfirmBottomSheetView(SharedPtr<DeleteConfirmViewModel> viewModel,
     const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository)
-    : _viewModel(std::move(viewModel))
+    : BottomSheetView(materialColorScheme)
+    , _viewModel(std::move(viewModel))
     , _titleLabel(Label2DView::CreateShared(128, 16, 25, fontRepository->GetFont(FontType::Medium11)))
     , _fileNameLabel(Label2DView::CreateShared(LINE_WIDTH, 16, 256, fontRepository->GetFont(FontType::Regular10)))
     , _saveLabel(Label2DView::CreateShared(LINE_WIDTH, 16, 270, fontRepository->GetFont(FontType::Medium7_5)))
@@ -79,6 +80,11 @@ void DeleteConfirmBottomSheetView::Draw(GraphicsContext& graphicsContext)
         _hintLabel->SetBackgroundColor(backColor);
         _hintLabel->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         _hintLabel->Draw(graphicsContext);
+
+        // OamManager hands out OAM slots from a descending stack, so
+        // drawing this last (not first) is what actually gives it the
+        // lowest indices here and keeps it in front - see
+        // DisplaySettingsBottomSheetView::Draw for the fuller explanation.
     }
     graphicsContext.SetPriority(oldPrio);
     graphicsContext.ResetClipArea();

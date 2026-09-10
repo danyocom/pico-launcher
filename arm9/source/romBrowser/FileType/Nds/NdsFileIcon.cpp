@@ -168,7 +168,6 @@ void NdsFileIcon::Draw(GraphicsContext& graphicsContext, const Rgb<8, 8, 8>& bac
             _position, vramOffset >> 7)
         .WithPalette16(paletteRowIdx)
         .WithPriority(graphicsContext.GetPriority());
-
     if (_animated)
     {
         builder

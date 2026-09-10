@@ -12,6 +12,17 @@ class RomBrowserAppBarView : public ViewContainer
 
 public:
     void InitVram(const VramContext& vramContext) override;
+
+private:
+    /// @brief The favorites button swaps between an outline and a filled heart
+    ///        rather than only changing tint, so its on state is legible
+    ///        without relying on colour alone. Both are uploaded once; toggling
+    ///        just points the button at the other one, so it costs no extra
+    ///        sprite - only the second tile's 128 bytes of OBJ VRAM.
+    u32 _heartIconVramOffset = 0;
+    u32 _heartFilledIconVramOffset = 0;
+
+public:
     void Update() override;
 
     Rectangle GetBounds() const override
@@ -23,8 +34,19 @@ public:
 
     void Focus(FocusManager& focusManager)
     {
-        _appBarView->Focus(focusManager, 0);
+        // Not button 0: returning here after a filter toggle rebuilt the list
+        // would otherwise dump focus on the back button every time, instead of
+        // leaving it on the filter the user just pressed so they can toggle it
+        // straight back off.
+        _appBarView->Focus(focusManager);
     }
+
+    void Focus(FocusManager& focusManager, int button)
+    {
+        _appBarView->Focus(focusManager, button);
+    }
+
+    int GetFocusedButtonIndex() const { return _appBarView->GetFocusedButtonIndex(); }
 
 private:
     enum AppBarButton

@@ -32,7 +32,7 @@ public:
     SharedPtr<BannerListItemView> CreateBannerListItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel,
         VBlankTextureLoader* vblankTextureLoader) const override
     {
-        return MaterialBannerListItemView::CreateShared(std::move(viewModel), _materialColorScheme, _fontRepository);
+        return MaterialBannerListItemView::CreateShared(std::move(viewModel), _materialColorScheme, _fontRepository, false);
     }
 
     BannerListItemView::VramToken UploadBannerListItemViewGraphics(
@@ -40,6 +40,20 @@ public:
     {
         return MaterialBannerListItemView::UploadGraphics(vramContext);
     }
+
+    SharedPtr<BannerListItemView> CreateWideBannerListItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel,
+        VBlankTextureLoader* vblankTextureLoader) const override
+    {
+        return MaterialBannerListItemView::CreateShared(std::move(viewModel), _materialColorScheme, _fontRepository, true);
+    }
+
+    // Sized so the cell's margins match on both sides - see
+    // MaterialBannerListItemView, which overlaps its right cap to reach a width
+    // the fixed 64px segments couldn't otherwise build.
+    int GetWideBannerListItemWidth() const override { return 248; }
+    // The cell art is 48px tall on a 40px row, so consecutive cells overlapped
+    // at the 3px the custom engine's flatter cell is happy with.
+    int GetWideBannerListItemSpacing() const override { return 8; }
 
     SharedPtr<AppBarView> CreateAppBarView(int x, int y, AppBarView::Orientation orientation,
         int startButtonCount, int endButtonCount) const override

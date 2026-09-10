@@ -11,6 +11,8 @@ RomBrowserView::RomBrowserView(
     const IRomBrowserViewFactory* romBrowserViewFactory,
     VBlankTextureLoader* vblankTextureLoader)
     : _viewModel(std::move(viewModel)), _isVertical(displayMode.IsVertical())
+    , _isAppBarAtEnd(displayMode.IsAppBarAtEnd())
+    , _hasReservedBottomSpace(displayMode.GetReservedBottomSpace() > 0)
 {
     _fileGridView = displayMode.CreateRecyclerView(romBrowserViewFactory);
     AddChildTail(_fileGridView.GetPointer());
@@ -49,7 +51,18 @@ SharedPtr<View> RomBrowserView::MoveFocus(const SharedPtr<View>& currentFocus, F
         }
         else
         {
-            if (direction == FocusMoveDirection::Down)
+            FocusMoveDirection towardContent = _isAppBarAtEnd
+                ? FocusMoveDirection::Up : FocusMoveDirection::Down;
+            // Must match RomBrowserBottomScreenView::MoveFocus, which applies
+            // this same rule one level up: on a reserved-space layout the icon
+            // row is a single horizontal strip, so leaving it vertically in
+            // EITHER direction comes back to the list. Allowing it there but
+            // not here left Up working and Down silently doing nothing, since
+            // both filters have to pass for the move to happen.
+            bool verticalExit = _hasReservedBottomSpace
+                ? (direction == FocusMoveDirection::Up || direction == FocusMoveDirection::Down)
+                : (direction == towardContent);
+            if (verticalExit)
             {
                 return _fileGridView->MoveFocus(currentFocus, direction, this);
             }

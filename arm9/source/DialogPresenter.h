@@ -75,6 +75,17 @@ public:
         return _curState != State::Idle;
     }
 
+    /// @brief Sets how much screen height, at the bottom edge, dialogs shown
+    ///        from now on must leave uncovered (see DialogView::SetBottomInset).
+    ///        Called by App whenever the current RomBrowserDisplayMode is
+    ///        (re)determined, so it reflects whichever layout is active by
+    ///        the next time a dialog opens. Doesn't retroactively resize a
+    ///        dialog that's already showing.
+    void SetBottomInset(int bottomInset)
+    {
+        _bottomInset = bottomInset;
+    }
+
 private:
     enum class State
     {
@@ -94,4 +105,5 @@ private:
     Animator<int> _yAnimator;
     State _curState = State::Idle;
     State _newState = State::Idle;
+    int _bottomInset = 0;
 };

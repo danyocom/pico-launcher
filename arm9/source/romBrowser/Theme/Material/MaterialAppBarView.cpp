@@ -22,6 +22,9 @@ MaterialAppBarView::MaterialAppBarView(int x, int y, Orientation orientation,
 
 void MaterialAppBarView::InitVram(const VramContext& vramContext)
 {
+    // Allocates the icon row strip's tile and cascades to the children.
+    AppBarView::InitVram(vramContext);
+
     const auto objVramManager = vramContext.GetObjVramManager();
     if (objVramManager)
     {

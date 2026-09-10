@@ -28,6 +28,9 @@
 #define KEY_TOP_COVER                   "topCover"
 #define KEY_TOP_GAME_COUNT              "topGameCount"
 #define KEY_TOP_LAUNCH_INFO             "topLaunchInfo"
+#define KEY_ICON_ROW                    "iconRow"
+#define KEY_ICON_ROW_TOP_COLOR          "topColor"
+#define KEY_ICON_ROW_BOTTOM_COLOR       "bottomColor"
 #define KEY_GRID_ICON                   "gridIcon"
 #define KEY_BANNER_LIST_ICON            "bannerListIcon"
 #define KEY_BANNER_LIST_TEXT_LINE_0     "bannerListTextLine0"
@@ -51,6 +54,11 @@ static const CustomThemeInfo sDefaultCustomThemeInfo
     // top-left corner of the game count pill / top-right corner of the launch info pill
     .topGameCountInfo = CustomTopStripElementInfo(Point(4, 2), false),
     .topLaunchInfoInfo = CustomTopStripElementInfo(Point(252, 2), false),
+
+    // Deliberately left unspecified: a theme that says nothing about its icon
+    // row gets colours derived from its own colour scheme instead of a fixed
+    // pair - see AppBarView's constructor.
+    .iconRowInfo = CustomIconRowInfo(),
 
     .gridIconInfo = CustomBottomIconInfo(Rgb8(200, 200, 200)),
 
@@ -102,6 +110,19 @@ static CustomBannerListTextElementInfo parseCustomBannerListTextElementInfo(
 
     return CustomBannerListTextElementInfo(
         parseColor(json[KEY_ELEMENT_TEXT_COLOR], defaultInfo.GetTextColor())
+    );
+}
+
+static CustomIconRowInfo parseCustomIconRowInfo(const JsonObjectConst& json, const CustomIconRowInfo& defaultInfo)
+{
+    if (json.isNull())
+    {
+        return defaultInfo;
+    }
+
+    return CustomIconRowInfo(
+        parseColor(json[KEY_ICON_ROW_TOP_COLOR], defaultInfo.GetTopColor()),
+        parseColor(json[KEY_ICON_ROW_BOTTOM_COLOR], defaultInfo.GetBottomColor())
     );
 }
 
@@ -191,6 +212,8 @@ static CustomThemeInfo parseCustomThemeInfo(const JsonDocument& json)
         .topLaunchInfoInfo = parseCustomTopStripElementInfo(
             json[KEY_TOP_LAUNCH_INFO], sDefaultCustomThemeInfo.topLaunchInfoInfo),
 
+        .iconRowInfo = parseCustomIconRowInfo(json[KEY_ICON_ROW], sDefaultCustomThemeInfo.iconRowInfo),
+
         .gridIconInfo = parseCustomBottomIconInfo(json[KEY_GRID_ICON], sDefaultCustomThemeInfo.gridIconInfo),
 
         .bannerListIconInfo = parseCustomBottomIconInfo(json[KEY_BANNER_LIST_ICON], sDefaultCustomThemeInfo.bannerListIconInfo),
@@ -232,6 +255,8 @@ void CustomTheme::LoadRomBrowserResources(const VramContext& mainVramContext, co
     _topBackgroundType = parseTopBackgroundType(json["topBackgroundType"].as<const char*>());
     _customThemeInfo = parseCustomThemeInfo(json);
 
+    // Still needed: CustomAppBarView uses 3D buttons for its vertical and top
+    // orientations, and only switches to sprite ones for the bottom icon row.
     mem_setVramDMapping(MEM_VRAM_D_LCDC);
     mem_setVramEMapping(MEM_VRAM_E_LCDC);
     IconButton3DView::UploadGraphics(mainVramContext);

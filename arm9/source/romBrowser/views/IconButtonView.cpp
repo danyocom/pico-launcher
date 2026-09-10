@@ -142,7 +142,14 @@ md::sys::color IconButtonView::GetCircleBackgroundColor() const
             if (_state == State::ToggleUnselected)
                 return md::sys::color::surfaceContainerHighest;
             else
-                return md::sys::color::secondaryContainer;
+                // Not secondaryContainer: that is the secondary palette at the
+                // same tone as surfaceContainerHighest is on the neutral one
+                // (90 in a light theme), so selected and unselected differed
+                // only in chroma and were near enough indistinguishable. primary
+                // is tones away in both light and dark, so which value is active
+                // reads at a glance. Focus is no longer carried by the fill - the
+                // outline ring does that - so this is free to say "selected".
+                return md::sys::color::primary;
         }
         default:
         {
@@ -202,7 +209,9 @@ md::sys::color IconButtonView::GetForegroundColor() const
             if (_state == State::ToggleUnselected)
                 return md::sys::color::onSurfaceVariant;
             else
-                return md::sys::color::onSecondaryContainer;
+                // must stay the tone guaranteed readable on whatever
+                // GetCircleBackgroundColor picked for the selected state
+                return md::sys::color::onPrimary;
         }
         default:
         {

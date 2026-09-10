@@ -44,7 +44,7 @@ private:
     SharedPtr<Label2DView> _sortingLabel;
     SharedPtr<Label2DView> _brightnessLabel;
 
-    std::array<SharedPtr<IconButton2DView>, 4> _layoutOptions;
+    std::array<SharedPtr<IconButton2DView>, 5> _layoutOptions;
     std::array<SharedPtr<IconButton2DView>, /*3*/2> _sortOptions;
     std::array<SharedPtr<IconButton2DView>, 4> _brightnessOptions;
 

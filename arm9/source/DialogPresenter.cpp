@@ -43,7 +43,12 @@ void DialogPresenter::Update()
             {
                 _scrimAnimator.Goto(5, md::sys::motion::duration::short2,
                     &md::sys::motion::easing::linear);
-                _yAnimator.Goto(32, md::sys::motion::duration::long2,
+                // Layouts that reserve bottom screen space (see
+                // SetBottomInset) also want the sheet to open all the way to
+                // the top of the screen instead of stopping at 32 - there's
+                // no app bar competing for room at the top the way there
+                // would be at the bottom for those layouts.
+                _yAnimator.Goto(_bottomInset > 0 ? 0 : 32, md::sys::motion::duration::long2,
                     &md::sys::motion::easing::emphasizedDecelerate);
                 _oldFocus = _focusManager->GetCurrentFocus();
                 _currentDialog->Focus(*_focusManager);
@@ -53,6 +58,17 @@ void DialogPresenter::Update()
             {
                 _scrimAnimator.Goto(0, md::sys::motion::duration::short4,
                     &md::sys::motion::easing::emphasizedAccelerate);
+                // Always the literal screen edge, regardless of bottomInset:
+                // the sheet's actual on-screen background (BG1, scrolled via
+                // REG_BG1VOFS below) always extends down past the bottom of
+                // the screen once its top edge reaches y 192 - it isn't
+                // "shrunk" by SetBottomInset, only scrolled - so 192 is what
+                // fully hides it. bottomInset only affects how far it's
+                // allowed to grow while open (BottomSheetView::GetBounds)
+                // and, while a dialog is open, keeps the reserved layout's
+                // app bar drawn in front of it instead (see
+                // RomBrowserBottomScreenView::Draw) rather than trying to
+                // make the background itself stop short.
                 _yAnimator.Goto(192, md::sys::motion::duration::short4,
                     &md::sys::motion::easing::emphasizedAccelerate);
                 if (_oldFocus)
@@ -75,6 +91,7 @@ void DialogPresenter::Update()
             if (!_currentDialog && _nextDialog)
             {
                 _currentDialog = std::move(_nextDialog);
+                _currentDialog->SetBottomInset(_bottomInset);
                 _initVram = true;
                 _newState = State::BottomSheetVisible;
             }

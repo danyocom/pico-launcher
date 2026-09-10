@@ -30,12 +30,14 @@
 #define TITLE_LABEL_X       20
 #define TITLE_LABEL_Y       16
 
-#define THEME_BUTTON_X      212
+// Both shifted 32px left of their original x (212/176) to leave room for the
+// sheet's close button in the top-right corner (BottomSheetView::Update).
+#define THEME_BUTTON_X      180
 #define THEME_BUTTON_Y      (TITLE_LABEL_Y - 7)
 
 // Shares the title row with the theme button - the layout/sorting/brightness
 // rows below already run edge to edge with no vertical room for a 4th row.
-#define HIDE_EMPTY_FOLDERS_BUTTON_X     176
+#define HIDE_EMPTY_FOLDERS_BUTTON_X     144
 #define HIDE_EMPTY_FOLDERS_BUTTON_Y     (TITLE_LABEL_Y - 7)
 
 #define LAYOUT_LABEL_X      20
@@ -50,12 +52,13 @@
 #define FILTERS_LABEL_X     20
 #define FILTERS_LABEL_Y     112
 
-static RomBrowserLayout sRomBrowserDisplayModes[4] =
+static RomBrowserLayout sRomBrowserDisplayModes[5] =
 {
     [0] = RomBrowserLayout::HorizontalIconGrid,
     [1] = RomBrowserLayout::VerticalIconGrid,
     [2] = RomBrowserLayout::BannerList,
-    [3] = RomBrowserLayout::CoverFlow
+    [3] = RomBrowserLayout::CoverFlow,
+    [4] = RomBrowserLayout::WideBannerList
 };
 
 static RomBrowserSortMode sRomBrowserSortModes[4] =
@@ -68,7 +71,8 @@ static RomBrowserSortMode sRomBrowserSortModes[4] =
 DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     DisplaySettingsViewModel* viewModel, const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository)
-    : _viewModel(viewModel)
+    : BottomSheetView(materialColorScheme)
+    , _viewModel(viewModel)
     , _titleLabel(Label2DView::CreateShared(128, 16, 25, fontRepository->GetFont(FontType::Medium11)))
     , _themeButton(IconButton2DView::CreateShared(
         IconButtonView::Type::Standard,
@@ -211,6 +215,7 @@ void DisplaySettingsBottomSheetView::InitVram(const VramContext& vramContext)
         _layoutOptions[1]->SetIconVramOffset(LoadIcon(*objVramManager, vGridIconTiles, vGridIconTilesLen));
         _layoutOptions[2]->SetIconVramOffset(LoadIcon(*objVramManager, bannerListIconTiles, bannerListIconTilesLen));
         _layoutOptions[3]->SetIconVramOffset(LoadIcon(*objVramManager, coverflowIconTiles, coverflowIconTilesLen));
+        _layoutOptions[4]->SetIconVramOffset(LoadIcon(*objVramManager, listIconTiles, listIconTilesLen));
 
         // sort options
         _sortOptions[0]->SetIconVramOffset(LoadIcon(*objVramManager, sortNameAscendingIconTiles, sortNameAscendingIconTilesLen));
@@ -294,6 +299,11 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         _brightnessLabel->SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
         _brightnessLabel->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         BottomSheetView::Draw(graphicsContext);
+        // OamManager hands out OAM slots from a descending stack (see
+        // OamManager::Clear/AllocOams), so whatever's drawn LAST here gets
+        // the LOWEST indices - and lower index wins the same-priority tie
+        // (renders more in front). Drawing this last, not first, is what
+        // actually keeps it on top of everything else this sheet draws.
     }
     graphicsContext.SetPriority(oldPrio);
     graphicsContext.ResetClipArea();

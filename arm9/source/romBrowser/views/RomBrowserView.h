@@ -39,6 +39,11 @@ private:
     SharedPtr<RecyclerViewBase> _fileGridView;
     SharedPtr<FileRecyclerAdapter> _fileRecyclerAdapter;
     bool _isVertical;
+    bool _isAppBarAtEnd;
+    /// @brief Whether this layout reserves screen space for a bottom icon row.
+    ///        Kept alongside the two flags above because the display mode isn't
+    ///        held past construction.
+    bool _hasReservedBottomSpace;
 
     RomBrowserView(
         SharedPtr<RomBrowserViewModel> viewModel,

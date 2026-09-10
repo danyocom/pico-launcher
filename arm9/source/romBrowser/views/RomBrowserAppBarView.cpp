@@ -5,6 +5,7 @@
 #include "backIcon.h"
 #include "settingsIcon.h"
 #include "heartIcon.h"
+#include "heartFilledIcon.h"
 #include "checkIcon.h"
 #include "recentIcon.h"
 #include "trashIcon.h"
@@ -64,11 +65,19 @@ RomBrowserAppBarView::RomBrowserAppBarView(
 
 void RomBrowserAppBarView::Update()
 {
-    // the heart tells whether the favorites filter is active
+    // the heart tells whether the favorites filter is active - filled and
+    // tinted when on, plain outline when off, so the state survives being read
+    // on a small screen where the tint alone is easy to miss
     if (_viewModel->IsFavoritesFilterEnabled())
+    {
         _appBarView->SetButtonIconColorOverride(APP_BAR_BUTTON_FAVORITE, Rgb<8, 8, 8>(214, 40, 57));
+        _appBarView->SetButtonIcon(APP_BAR_BUTTON_FAVORITE, _heartFilledIconVramOffset);
+    }
     else
+    {
         _appBarView->ClearButtonIconColorOverride(APP_BAR_BUTTON_FAVORITE);
+        _appBarView->SetButtonIcon(APP_BAR_BUTTON_FAVORITE, _heartIconVramOffset);
+    }
     // and the check whether the completed filter is
     if (_viewModel->IsCompletedFilterEnabled())
         _appBarView->SetButtonIconColorOverride(APP_BAR_BUTTON_COMPLETED, Rgb<8, 8, 8>(67, 160, 71));
@@ -95,9 +104,13 @@ void RomBrowserAppBarView::InitVram(const VramContext& vramContext)
         dma_ntrCopy32(3, settingsIconTiles, objVramManager->GetVramAddress(settingsIconVramOffset), settingsIconTilesLen);
         _appBarView->SetButtonIcon(APP_BAR_BUTTON_DISPLAY_SETTINGS, settingsIconVramOffset);
 
-        u32 heartIconVramOffset = objVramManager->Alloc(heartIconTilesLen);
-        dma_ntrCopy32(3, heartIconTiles, objVramManager->GetVramAddress(heartIconVramOffset), heartIconTilesLen);
-        _appBarView->SetButtonIcon(APP_BAR_BUTTON_FAVORITE, heartIconVramOffset);
+        _heartIconVramOffset = objVramManager->Alloc(heartIconTilesLen);
+        dma_ntrCopy32(3, heartIconTiles, objVramManager->GetVramAddress(_heartIconVramOffset), heartIconTilesLen);
+        _appBarView->SetButtonIcon(APP_BAR_BUTTON_FAVORITE, _heartIconVramOffset);
+
+        _heartFilledIconVramOffset = objVramManager->Alloc(heartFilledIconTilesLen);
+        dma_ntrCopy32(3, heartFilledIconTiles,
+            objVramManager->GetVramAddress(_heartFilledIconVramOffset), heartFilledIconTilesLen);
 
         u32 checkIconVramOffset = objVramManager->Alloc(checkIconTilesLen);
         dma_ntrCopy32(3, checkIconTiles, objVramManager->GetVramAddress(checkIconVramOffset), checkIconTilesLen);
