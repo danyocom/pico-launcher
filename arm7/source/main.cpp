@@ -58,26 +58,52 @@ static void vcountIrq(u32 irqMask)
     rtos_signalEvent(&sVCountEvent);
 }
 
+/// @brief Set when the ARM9 has asked what level the backlight is at. Same
+///        deal as sPendingBacklight: noted here, answered from the main thread.
+static volatile u8 sBacklightQueryPending = false;
+
 static void backlightIpcHandler(u32 channel, u32 data, void* arg)
 {
+    if (data == IPC_PMIC_MSG_QUERY_LEVEL)
+    {
+        sBacklightQueryPending = true;
+        return;
+    }
     sPendingBacklight = (data & PMIC_BACKLIGHT_MASK) + 1;
 }
 
 static void applyPendingBacklight()
 {
     u8 pending = mem_swapByte(0, &sPendingBacklight);
-    if (pending != 0)
+    bool query = mem_swapByte(false, &sBacklightQueryPending);
+    if (pending == 0 && !query)
     {
-        u8 backlight = pmic_readRegister(PMIC_REG_BACKLIGHT);
-        // DS Lite only, where bits 4-7 of the backlight register read back
-        // as 4. On the original DS registers 4..7F are MIRRORS of 0..3, so
-        // this read actually hit the control register — writing it back
-        // with modified low bits would clobber the sound amplifier there.
-        if ((backlight & 0xF0) == 0x40)
-        {
-            pmic_writeRegister(PMIC_REG_BACKLIGHT,
-                (backlight & ~PMIC_BACKLIGHT_MASK) | (pending - 1));
-        }
+        return;
+    }
+
+    u8 backlight = pmic_readRegister(PMIC_REG_BACKLIGHT);
+    // DS Lite only, where bits 4-7 of the backlight register read back
+    // as 4. On the original DS registers 4..7F are MIRRORS of 0..3, so
+    // this read actually hit the control register — writing it back
+    // with modified low bits would clobber the sound amplifier there,
+    // and its low bits mean nothing as a backlight level either.
+    bool isDsLite = (backlight & 0xF0) == 0x40;
+
+    if (pending != 0 && isDsLite)
+    {
+        pmic_writeRegister(PMIC_REG_BACKLIGHT,
+            (backlight & ~PMIC_BACKLIGHT_MASK) | (pending - 1));
+        backlight = (backlight & ~PMIC_BACKLIGHT_MASK) | (pending - 1);
+    }
+
+    if (query)
+    {
+        // The read above is the whole point of the query - the level the
+        // console booted at is otherwise invisible to the ARM9, which is why
+        // the settings screen used to show no backlight option as active.
+        ipc_sendFifoMessage(IPC_CHANNEL_PMIC, isDsLite
+            ? (IPC_PMIC_RESP_LEVEL | (backlight & PMIC_BACKLIGHT_MASK))
+            : IPC_PMIC_RESP_UNKNOWN);
     }
 }
 

@@ -29,6 +29,7 @@
 #include "gui/font/nitroFont2.h"
 #include "picoLoaderBootstrap.h"
 #include "rtcIpc.h"
+#include "backlightIpc.h"
 
 ProcessManager gProcessManager;
 ILogger* gLogger;
@@ -177,6 +178,13 @@ int main(int argc, char* argv[])
     while (ipc_getArm7SyncBits() != 7);
 
     rtc_init();
+
+    // Ask the ARM7 what level the backlight is actually at. The answer arrives
+    // asynchronously, but long before the settings screen can be opened, so it
+    // can show the active level instead of nothing on a console where the user
+    // has never set one through this app.
+    backlight_init();
+    backlight_requestLevel();
 
     if (argc >= 1)
     {
