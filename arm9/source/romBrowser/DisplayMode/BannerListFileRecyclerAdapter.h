@@ -23,10 +23,16 @@ public:
 
     void InitVram(const VramContext& vramContext) override;
 
-private:
+protected:
+    // WideBannerListFileRecyclerAdapter (the horizontal list layout's
+    // adapter) reuses these to build its wider item view - it draws with the
+    // same uploaded background tiles, just an extra repeated middle segment,
+    // so it doesn't need its own VRAM upload.
     const IRomBrowserViewFactory* _romBrowserViewFactory;
-    BannerListItemView::VramToken _bannerListItemViewGraphics;
     VBlankTextureLoader* _vblankTextureLoader;
+
+private:
+    BannerListItemView::VramToken _bannerListItemViewGraphics;
 
     TaskResult<void> BindView(SharedPtr<View> view, int index,
         const InternalFileInfo* internalFileInfo, const vu8& cancelRequested) const override;
